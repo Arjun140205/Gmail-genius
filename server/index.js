@@ -1,44 +1,50 @@
-// server/index.js
 import express from 'express';
 import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import cors from 'cors';
+import session from 'express-session';
+import passport from 'passport';
+import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/user.routes.js';
 
-const app = express();
 dotenv.config();
 
+const app = express();
+
 // Middlewares
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:3000',  // your frontend origin if needed
+  credentials: true,
+}));
 app.use(express.json());
 
+// Session middleware (required for passport)
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'keyboard cat',
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false }, // set true if using https
+  sameSite: 'lax' 
+}));
+
+// Initialize passport and session
+app.use(passport.initialize());
+app.use(passport.session());
+
 // Routes
+app.use('/auth', authRoutes);
 app.use('/api/users', userRoutes);
 
-// Health check route
 app.get('/', (req, res) => {
   res.send('GmailGenius backend is running!');
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: 'Something went wrong!' });
-});
-
-// MongoDB connection with error handling
+// MongoDB connection
 mongoose.set('strictQuery', false);
 mongoose.connection.on('connected', () => console.log('✅ MongoDB connected successfully'));
 mongoose.connection.on('error', (err) => console.log('❌ MongoDB connection error:', err));
 mongoose.connection.on('disconnected', () => console.log('MongoDB disconnected'));
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
-  await mongoose.connection.close();
-  process.exit(0);
-});
-
-// Connect to MongoDB and start server
 const PORT = process.env.PORT || 3500;
 const MONGO_URI = process.env.MONGO_URI;
 
