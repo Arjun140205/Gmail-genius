@@ -2,27 +2,47 @@ import React, { useState, useEffect } from 'react';
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const [emails, setEmails] = useState([]);
 
   // Fetch logged-in user info on app load
   useEffect(() => {
     fetch('http://localhost:3500/auth/user', {
-      credentials: 'include', // send cookies for session
+      credentials: 'include',
     })
       .then(res => res.json())
       .then(data => {
         if (data.user) {
-          // Adapt user data structure if needed, example:
-          // user.name = user.displayName or user.name or combine givenName/familyName
           const userData = {
-            name: data.user.displayName || `${data.user.name?.givenName || ''} ${data.user.name?.familyName || ''}`.trim() || 'User',
+            name:
+              data.user.displayName ||
+              `${data.user.name?.givenName || ''} ${data.user.name?.familyName || ''}`.trim() ||
+              'User',
             email: data.user.emails?.[0]?.value || data.user.email || '',
             picture: data.user.photos?.[0]?.value || data.user.picture || '',
           };
           setUser(userData);
+        } else {
+          setUser(null);
         }
       })
       .catch(() => setUser(null));
   }, []);
+
+  // Fetch emails after user is set
+  useEffect(() => {
+    if (user) {
+      fetch('http://localhost:3500/api/gmail/emails', {
+        credentials: 'include',
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.emails) {
+            // Initialize emails without tags
+            setEmails(data.emails.map(email => ({ ...email, tag: '' })));
+          }
+        });
+    }
+  }, [user]);
 
   const googleLogin = () => {
     window.location.href = 'http://localhost:3500/auth/google';
@@ -30,13 +50,9 @@ export default function App() {
 
   const logout = () => {
     fetch('http://localhost:3500/auth/logout', {
-      method: 'GET', // changed to GET to match backend
+      method: 'GET',
       credentials: 'include',
     })
-      .then(res => {
-        if (!res.ok) throw new Error('Logout failed');
-        return res.json();
-      })
       .then(() => setUser(null))
       .catch(err => {
         console.error('Logout error:', err);
@@ -44,8 +60,14 @@ export default function App() {
       });
   };
 
+  // Handle tag change per email
+  const handleTagChange = (index, tag) => {
+    const updatedEmails = [...emails];
+    updatedEmails[index].tag = tag;
+    setEmails(updatedEmails);
+  };
+
   if (!user) {
-    // Show Login page
     return (
       <main className="app-container">
         <section className="login-card">
@@ -144,17 +166,17 @@ export default function App() {
     );
   }
 
-  // Show Dashboard if user is logged in
   return (
     <main
       style={{
-        maxWidth: '480px',
+        maxWidth: '600px',
         margin: '2rem auto',
         fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
         textAlign: 'center',
+        padding: '1rem',
       }}
     >
-      <h1>Welcome, {user.name}!</h1>
+      <h1 style={{ fontSize: '2rem' }}>Welcome, {user.name}!</h1>
       {user.picture && (
         <img
           src={user.picture}
@@ -162,7 +184,67 @@ export default function App() {
           style={{ borderRadius: '50%', width: '120px', margin: '1rem auto' }}
         />
       )}
-      <p>{user.email}</p>
+      <p style={{ color: '#555', fontWeight: 500 }}>{user.email}</p>
+
+      <h2 style={{ marginTop: '2.5rem' }}>📬 Recent Emails</h2>
+      {emails.length === 0 ? (
+        <p style={{ color: '#999', marginTop: '1rem' }}>No emails to display.</p>
+      ) : (
+        <ul style={{ listStyle: 'none', padding: 0 }}>
+          {emails.map((email, index) => (
+            <li
+              key={email.id || index}
+              style={{
+                background: '#fff',
+                margin: '1rem 0',
+                padding: '1rem',
+                borderRadius: '8px',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                textAlign: 'left',
+              }}
+            >
+              <strong>Subject:</strong> {email.subject || '(No Subject)'}
+              <p style={{ marginTop: '0.5rem', color: '#555' }}>{email.snippet}</p>
+
+              {/* Tag display */}
+              {email.tag && (
+                <span
+                  style={{
+                    display: 'inline-block',
+                    backgroundColor: '#4285f4',
+                    color: 'white',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    fontSize: '0.8rem',
+                    marginTop: '0.5rem',
+                  }}
+                >
+                  {email.tag}
+                </span>
+              )}
+
+              {/* Tagging dropdown */}
+              <div style={{ marginTop: '0.5rem' }}>
+                <label htmlFor={`tag-${index}`}>Tag this email:</label>
+                <select
+                  id={`tag-${index}`}
+                  onChange={(e) => handleTagChange(index, e.target.value)}
+                  defaultValue=""
+                  style={{ marginLeft: '0.5rem', padding: '4px' }}
+                >
+                  <option value="" disabled>
+                    Select tag
+                  </option>
+                  <option value="Job">Job</option>
+                  <option value="Important">Important</option>
+                  <option value="Follow Up">Follow Up</option>
+                </select>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
       <button
         onClick={logout}
         style={{
