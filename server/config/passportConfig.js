@@ -13,9 +13,12 @@ passport.use(
       callbackURL: process.env.GOOGLE_REDIRECT_URI,
     },
     (accessToken, refreshToken, profile, done) => {
-      // This is where you would normally find or create the user in your DB
-      // For now, just pass the profile
-      return done(null, profile);
+      // Attach accessToken to user profile for later API calls
+      const userWithToken = {
+        ...profile,
+        accessToken,
+      };
+      return done(null, userWithToken);
     }
   )
 );
