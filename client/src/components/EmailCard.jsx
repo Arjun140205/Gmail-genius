@@ -1,54 +1,32 @@
 // src/components/EmailCard.jsx
 import React from 'react';
 
-// Keywords and corresponding tags
-const TAG_RULES = [
-  { tag: 'Internship', keywords: ['internship', 'intern'] },
-  { tag: 'Job', keywords: ['job', 'hiring', 'recruitment'] },
-  { tag: 'Offer', keywords: ['offer', 'selected', 'congratulations'] },
-  { tag: 'Interview', keywords: ['interview', 'shortlisted', 'call'] },
-  { tag: 'Alert', keywords: ['alert', 'warning', 'notice'] },
-];
+function highlight(text, keyword) {
+  if (!keyword) return text;
+  const parts = text.split(new RegExp(`(${keyword})`, 'gi'));
+  return parts.map((part, i) =>
+    part.toLowerCase() === keyword.toLowerCase() ? (
+      <mark key={i}>{part}</mark>
+    ) : (
+      part
+    )
+  );
+}
 
-// Highlighting
-const highlightText = (text) => {
-  if (!text) return '';
-  const allKeywords = TAG_RULES.flatMap(rule => rule.keywords);
-  const regex = new RegExp(`\\b(${allKeywords.join('|')})\\b`, 'gi');
-  return text.replace(regex, (match) => `<mark>${match}</mark>`);
-};
+const EmailCard = ({ email, searchTerm, onClick }) => {
+  const { subject, snippet, internalDate } = email;
 
-// Tag detection
-const detectTags = (text) => {
-  const tags = [];
-  const lowerText = text?.toLowerCase() || '';
-  TAG_RULES.forEach(rule => {
-    if (rule.keywords.some(keyword => lowerText.includes(keyword))) {
-      tags.push(rule.tag);
-    }
-  });
-  return [...new Set(tags)];
-};
-
-const EmailCard = ({ subject, snippet }) => {
-  const tags = detectTags(`${subject} ${snippet}`);
+  const formattedDate = internalDate
+    ? new Date(Number(internalDate)).toLocaleString()
+    : '';
 
   return (
-    <div className="email-card">
-      <div className="email-tags">
-        {tags.map((tag, index) => (
-          <span className="tag" key={index}>{tag}</span>
-        ))}
-      </div>
-
-      <h4
-        className="email-subject"
-        dangerouslySetInnerHTML={{ __html: highlightText(subject || '(No Subject)') }}
-      ></h4>
-      <p
-        className="email-snippet"
-        dangerouslySetInnerHTML={{ __html: highlightText(snippet) }}
-      ></p>
+    <div className="email-card" onClick={onClick}>
+      <h4 className="email-subject">
+        {highlight(subject || '(No Subject)', searchTerm)}
+      </h4>
+      <p className="email-snippet">{highlight(snippet || '', searchTerm)}</p>
+      <p className="email-date">{formattedDate}</p>
 
       <style jsx>{`
         .email-card {
@@ -57,6 +35,7 @@ const EmailCard = ({ subject, snippet }) => {
           padding: 1rem;
           border-radius: 10px;
           margin-bottom: 1rem;
+          cursor: pointer;
           transition: box-shadow 0.2s;
         }
 
@@ -64,37 +43,27 @@ const EmailCard = ({ subject, snippet }) => {
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         }
 
-        .email-tags {
-          margin-bottom: 0.5rem;
-        }
-
-        .tag {
-          display: inline-block;
-          background-color: #e8f0fe;
-          color: #1967d2;
-          padding: 0.25rem 0.6rem;
-          margin-right: 0.4rem;
-          border-radius: 9999px;
-          font-size: 0.75rem;
-          font-weight: 500;
-          text-transform: uppercase;
-        }
-
         .email-subject {
           font-weight: 600;
           font-size: 1.05rem;
           color: #202124;
-          margin-bottom: 0.5rem;
+          margin-bottom: 0.4rem;
         }
 
         .email-snippet {
           color: #5f6368;
           font-size: 0.95rem;
+          margin-bottom: 0.3rem;
+        }
+
+        .email-date {
+          color: #999;
+          font-size: 0.8rem;
+          text-align: right;
         }
 
         mark {
-          background-color: #fff176;
-          font-weight: bold;
+          background-color: yellow;
         }
       `}</style>
     </div>
