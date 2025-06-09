@@ -1,4 +1,5 @@
 import React from 'react';
+import EmailCard from '../components/EmailCard';
 
 export default function EmailDashboard({ user, emails, onLogout }) {
   return (
@@ -15,14 +16,11 @@ export default function EmailDashboard({ user, emails, onLogout }) {
         {emails.length === 0 ? (
           <p>No emails to display.</p>
         ) : (
-          <ul>
+          <div className="email-grid">
             {emails.slice(0, 10).map((email, index) => (
-              <li key={index} className="email-card">
-                <strong>{email.subject || '(No Subject)'}</strong>
-                <p>{email.snippet}</p>
-              </li>
+              <EmailCard key={index} subject={email.subject} snippet={email.snippet} />
             ))}
-          </ul>
+          </div>
         )}
       </section>
 
@@ -42,20 +40,15 @@ export default function EmailDashboard({ user, emails, onLogout }) {
           border-radius: 50%;
           margin-bottom: 1rem;
         }
-        .email-list ul {
-          list-style: none;
-          padding: 0;
+        .email-list {
+          margin-top: 1rem;
         }
-        .email-card {
-          background: #f1f3f4;
-          padding: 1rem;
-          border-radius: 8px;
-          margin-bottom: 1rem;
-          box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        .email-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 1rem;
         }
       `}</style>
     </main>
   );
 }
-
-
