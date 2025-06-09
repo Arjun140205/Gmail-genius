@@ -1,11 +1,22 @@
+// src/App.jsx
 import React, { useState, useEffect } from 'react';
 import Email from './pages/Email';
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [emails, setEmails] = useState([]);
+  const [filteredEmails, setFilteredEmails] = useState([]);
+  const [selectedTag, setSelectedTag] = useState('All');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  const tagEmail = (email) => {
+    const subject = (email.subject || '').toLowerCase();
+    if (subject.includes('internship')) return 'Internship';
+    if (subject.includes('job')) return 'Job';
+    if (subject.includes('offer')) return 'Offer';
+    return 'Other';
+  };
 
   useEffect(() => {
     fetch('http://localhost:3500/auth/user', { credentials: 'include' })
@@ -13,10 +24,7 @@ export default function App() {
       .then(data => {
         if (data.user) {
           const userData = {
-            name:
-              data.user.displayName ||
-              `${data.user.name?.givenName || ''} ${data.user.name?.familyName || ''}`.trim() ||
-              'User',
+            name: data.user.displayName || `${data.user.name?.givenName || ''} ${data.user.name?.familyName || ''}`.trim() || 'User',
             email: data.user.emails?.[0]?.value || data.user.email || '',
             picture: data.user.photos?.[0]?.value || data.user.picture || '',
           };
@@ -33,7 +41,12 @@ export default function App() {
         .then(res => res.json())
         .then(data => {
           if (data.emails) {
-            setEmails(data.emails);
+            const taggedEmails = data.emails.map(email => ({
+              ...email,
+              tag: tagEmail(email),
+            }));
+            setEmails(taggedEmails);
+            setFilteredEmails(taggedEmails);
             setError(null);
           } else setError('Failed to load emails.');
         })
@@ -41,6 +54,14 @@ export default function App() {
         .finally(() => setLoading(false));
     }
   }, [user]);
+
+  useEffect(() => {
+    if (selectedTag === 'All') {
+      setFilteredEmails(emails);
+    } else {
+      setFilteredEmails(emails.filter(email => email.tag === selectedTag));
+    }
+  }, [selectedTag, emails]);
 
   const googleLogin = () => {
     window.location.href = 'http://localhost:3500/auth/google';
@@ -66,6 +87,14 @@ export default function App() {
   }
 
   return (
-    <Email user={user} emails={emails} onLogout={logout} loading={loading} error={error} />
+    <Email
+      user={user}
+      emails={filteredEmails}
+      onLogout={logout}
+      loading={loading}
+      error={error}
+      selectedTag={selectedTag}
+      onTagChange={setSelectedTag}
+    />
   );
 }
