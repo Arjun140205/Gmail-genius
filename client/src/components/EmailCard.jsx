@@ -3,18 +3,19 @@ import React from 'react';
 import styled from 'styled-components';
 
 const Card = styled.div`
-  background: #ffffff;
-  border: 1px solid #edf2f7;
+  background: #fafafa;
+  border: 1px solid #e5e5e5;
   padding: 1.25rem;
-  border-radius: 12px;
+  border-radius: 8px;
   margin-bottom: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-    border-color: #e2e8f0;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    border-color: #d4d4d4;
+    background: #ffffff;
   }
 `;
 
@@ -25,9 +26,9 @@ const Content = styled.div`
 `;
 
 const IconWrapper = styled.div`
-  background: #f7fafc;
+  background: #f5f5f5;
   padding: 0.75rem;
-  border-radius: 10px;
+  border-radius: 6px;
   font-size: 1.25rem;
   min-width: 48px;
   height: 48px;
@@ -47,13 +48,13 @@ const Details = styled.div`
 const Subject = styled.h4`
   font-weight: 600;
   font-size: 1.1rem;
-  color: #1a202c;
+  color: #262626;
   margin-bottom: 0.5rem;
   line-height: 1.4;
 `;
 
 const Snippet = styled.p`
-  color: #4a5568;
+  color: #525252;
   font-size: 0.95rem;
   margin-bottom: 0.75rem;
   line-height: 1.5;
@@ -64,7 +65,7 @@ const Snippet = styled.p`
 `;
 
 const DateText = styled.p`
-  color: #718096;
+  color: #737373;
   font-size: 0.875rem;
   display: flex;
   align-items: center;
@@ -74,11 +75,13 @@ const DateText = styled.p`
     content: '•';
     font-size: 1.2em;
     line-height: 0;
+    color: #a3a3a3;
   }
 `;
 
 const StyledMark = styled.mark`
-  background-color: #fefcbf;
+  background-color: #fef9c3;
+  color: #854d0e;
   padding: 0.1em 0.2em;
   border-radius: 2px;
 `;
