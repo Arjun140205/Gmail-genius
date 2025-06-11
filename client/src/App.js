@@ -1,14 +1,35 @@
+import React from 'react';
+import styled from 'styled-components';
 import Layout from './components/Layout';
+
+const Container = styled.div`
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+`;
+
+const Title = styled.h2`
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1a202c;
+  margin-bottom: 1rem;
+`;
+
+const Text = styled.p`
+  color: #4a5568;
+  line-height: 1.5;
+`;
 
 function App() {
   return (
     <Layout>
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold mb-4">Welcome to GmailGenius</h2>
-        <p className="text-gray-600">
+      <Container>
+        <Title>Welcome to GmailGenius</Title>
+        <Text>
           Connect your Gmail account to get started with smart email management.
-        </p>
-      </div>
+        </Text>
+      </Container>
     </Layout>
   );
 }
