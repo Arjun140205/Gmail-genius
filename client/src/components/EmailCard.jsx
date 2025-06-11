@@ -1,12 +1,94 @@
 // src/components/EmailCard.jsx
 import React from 'react';
+import styled from 'styled-components';
+
+const Card = styled.div`
+  background: #ffffff;
+  border: 1px solid #edf2f7;
+  padding: 1.25rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    border-color: #e2e8f0;
+  }
+`;
+
+const Content = styled.div`
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+`;
+
+const IconWrapper = styled.div`
+  background: #f7fafc;
+  padding: 0.75rem;
+  border-radius: 10px;
+  font-size: 1.25rem;
+  min-width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  @media (max-width: 640px) {
+    display: none;
+  }
+`;
+
+const Details = styled.div`
+  flex: 1;
+`;
+
+const Subject = styled.h4`
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: #1a202c;
+  margin-bottom: 0.5rem;
+  line-height: 1.4;
+`;
+
+const Snippet = styled.p`
+  color: #4a5568;
+  font-size: 0.95rem;
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+`;
+
+const DateText = styled.p`
+  color: #718096;
+  font-size: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  &:before {
+    content: '•';
+    font-size: 1.2em;
+    line-height: 0;
+  }
+`;
+
+const StyledMark = styled.mark`
+  background-color: #fefcbf;
+  padding: 0.1em 0.2em;
+  border-radius: 2px;
+`;
 
 function highlight(text, keyword) {
   if (!keyword) return text;
   const parts = text.split(new RegExp(`(${keyword})`, 'gi'));
   return parts.map((part, i) =>
     part.toLowerCase() === keyword.toLowerCase() ? (
-      <mark key={i}>{part}</mark>
+      <StyledMark key={i}>{part}</StyledMark>
     ) : (
       part
     )
@@ -21,52 +103,20 @@ const EmailCard = ({ email, searchTerm, onClick }) => {
     : '';
 
   return (
-    <div className="email-card" onClick={onClick}>
-      <h4 className="email-subject">
-        {highlight(subject || '(No Subject)', searchTerm)}
-      </h4>
-      <p className="email-snippet">{highlight(snippet || '', searchTerm)}</p>
-      <p className="email-date">{formattedDate}</p>
-
-      <style jsx>{`
-        .email-card {
-          background: #ffffff;
-          border: 1px solid #e0e0e0;
-          padding: 1rem;
-          border-radius: 10px;
-          margin-bottom: 1rem;
-          cursor: pointer;
-          transition: box-shadow 0.2s;
-        }
-
-        .email-card:hover {
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        }
-
-        .email-subject {
-          font-weight: 600;
-          font-size: 1.05rem;
-          color: #202124;
-          margin-bottom: 0.4rem;
-        }
-
-        .email-snippet {
-          color: #5f6368;
-          font-size: 0.95rem;
-          margin-bottom: 0.3rem;
-        }
-
-        .email-date {
-          color: #999;
-          font-size: 0.8rem;
-          text-align: right;
-        }
-
-        mark {
-          background-color: yellow;
-        }
-      `}</style>
-    </div>
+    <Card onClick={onClick}>
+      <Content>
+        <IconWrapper>
+          <span>📧</span>
+        </IconWrapper>
+        <Details>
+          <Subject>
+            {highlight(subject || '(No Subject)', searchTerm)}
+          </Subject>
+          <Snippet>{highlight(snippet || '', searchTerm)}</Snippet>
+          <DateText>{formattedDate}</DateText>
+        </Details>
+      </Content>
+    </Card>
   );
 };
 
