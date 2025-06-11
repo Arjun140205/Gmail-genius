@@ -2,48 +2,122 @@
   padding: 2rem;
   max-width: 700px;
   margin: auto;
-  font-family: 'Segoe UI', sans-serif;
-  text-align: center; /* Center everything */
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 .user-info {
+  text-align: center;
   margin-bottom: 2rem;
 }
 
 .avatar {
   width: 100px;
+  height: 100px;
   border-radius: 50%;
-  margin-bottom: 1rem;
+  margin: 0 auto 1rem;
   display: block;
-  margin-left: auto;
-  margin-right: auto;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .logout-btn {
-  background-color: #ea4335;
-  border: none;
+  background: linear-gradient(to right, #ef4444, #dc2626);
   color: white;
+  border: none;
   padding: 0.6rem 1.2rem;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 1rem;
-  margin-top: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .logout-btn:hover {
-  background-color: #d93025;
+  filter: brightness(110%);
+  transform: translateY(-1px);
 }
 
-.email-list ul {
+.filters {
+  margin-bottom: 2rem;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--gray-200);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.search-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.tag-navigation {
+  margin-top: 1.5rem;
+}
+
+.tag-list {
   list-style: none;
   padding: 0;
-  text-align: left; /* Left align emails for readability */
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.email-card {
-  background: #f1f3f4;
-  padding: 1rem;
-  border-radius: 8px;
+.tag-button {
+  background: white;
+  border: 1px solid var(--gray-200);
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  transition: all 0.2s ease;
+}
+
+.tag-button:hover {
+  background: var(--gray-50);
+  border-color: var(--gray-300);
+}
+
+.tag-button.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.email-list {
+  margin-top: 2rem;
+}
+
+.empty-state,
+.error-state,
+.loading-state {
+  text-align: center;
+  padding: 3rem 1rem;
+  color: var(--gray-500);
+}
+
+.empty-state span,
+.error-state span {
+  font-size: 2rem;
   margin-bottom: 1rem;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  display: block;
+}
+
+@media (max-width: 640px) {
+  .dashboard {
+    padding: 1rem;
+  }
+
+  .tag-list {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+  }
+
+  .tag-button {
+    white-space: nowrap;
+  }
 }
