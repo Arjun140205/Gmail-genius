@@ -1,6 +1,6 @@
 import React from 'react';
 
-const Layout = ({ children }) => {
+const Layout = ({ children, user }) => {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200">
@@ -18,27 +18,33 @@ const Layout = ({ children }) => {
               >
                 Dashboard
               </a>
-              <button className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all">
-                Connect Gmail
-              </button>
+              {user && (
+                <div className="flex items-center space-x-3">
+                  <span className="text-sm text-gray-700">{user.displayName}</span>
+                  <img
+                    src="/api/user/profile-image"
+                    alt={user.displayName || 'User'}
+                    className="w-10 h-10 rounded-full"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = `data:image/svg+xml,${encodeURIComponent(
+                        `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                          <text x="50%" y="50%" font-family="Arial" font-size="12" fill="#6B7280" text-anchor="middle" dy=".3em">
+                            ${(user.displayName || 'U')[0]}
+                          </text>
+                        </svg>`
+                      )}`;
+                    }}
+                  />
+                </div>
+              )}
             </nav>
           </div>
         </div>
       </header>
-
-      <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
-        <div className="px-4 sm:px-0">
-          {children}
-        </div>
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {children}
       </main>
-
-      <footer className="bg-white border-t border-gray-200 mt-auto">
-        <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8">
-          <p className="text-center text-gray-500 text-sm">
-            © 2025 GmailGenius. All rights reserved.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 };
