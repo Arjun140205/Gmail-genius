@@ -1,6 +1,6 @@
 // src/App.jsx
 import React, { useState, useEffect } from 'react';
-import Email from './pages/Email';
+import Dashboard from './components/Dashboard'; // ✅ Use your new dashboard
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -86,15 +86,12 @@ export default function App() {
     );
   }
 
+  // ✅ Use Dashboard instead of Email now
   return (
-    <Email
+    <Dashboard
       user={user}
       emails={filteredEmails}
       onLogout={logout}
-      loading={loading}
-      error={error}
-      selectedTag={selectedTag}
-      onTagChange={setSelectedTag}
     />
   );
 }
