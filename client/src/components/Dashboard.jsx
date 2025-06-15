@@ -1,87 +1,131 @@
 import React, { useState } from 'react';
 import EmailCard from '../components/EmailCard';
 import ResumeUpload from '../components/ResumeUpload';
+import AnalyticsPanel from '../components/AnalyticsPanel';
+import SuggestionPanel from '../components/SuggestionPanel';
+import SuggestedMatches from '../components/SuggestedMatches';
 
 export default function EmailDashboard({ user, emails = [], onLogout }) {
   const [extractedSkills, setExtractedSkills] = useState([]);
+  const [selectedEmail, setSelectedEmail] = useState(null);
   const profileImage = user?.picture || '/api/user/profile-image';
   const userName = user?.name || 'User';
   const userEmail = user?.email || '';
 
   const handleSkillsExtracted = (skills) => {
     setExtractedSkills(skills);
-    // You might want to trigger email matching here with the extracted skills
+  };
+
+  const handleEmailSelect = (email) => {
+    setSelectedEmail(email);
   };
 
   return (
     <main className="dashboard">
-      <div className="user-info">
-        <img 
-          src={profileImage} 
-          alt="Profile" 
-          className="avatar"
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = `data:image/svg+xml,${encodeURIComponent(
-              `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                <text x="50%" y="50%" font-family="Arial" font-size="12" fill="#6B7280" text-anchor="middle" dy=".3em">
-                  ${userName[0]}
-                </text>
-              </svg>`
-            )}`;
-          }}
-        />
-        <h2>{userName}</h2>
-        <p>{userEmail}</p>
-        <button 
-          onClick={onLogout}
-          className="logout-button"
-        >
-          Logout
-        </button>
+      <div className="dashboard-grid">
+        {/* Left Column - User Info and Resume Upload */}
+        <div className="left-column">
+          <div className="user-info">
+            <img 
+              src={profileImage} 
+              alt="Profile" 
+              className="avatar"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = `data:image/svg+xml,${encodeURIComponent(
+                  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <text x="50%" y="50%" font-family="Arial" font-size="12" fill="#6B7280" text-anchor="middle" dy=".3em">
+                      ${userName[0]}
+                    </text>
+                  </svg>`
+                )}`;
+              }}
+            />
+            <h2>{userName}</h2>
+            <p>{userEmail}</p>
+            <button 
+              onClick={onLogout}
+              className="logout-button"
+            >
+              Logout
+            </button>
+          </div>
+
+          <ResumeUpload onSkillsExtracted={handleSkillsExtracted} />
+          
+          <AnalyticsPanel emails={emails} skills={extractedSkills} />
+        </div>
+
+        {/* Middle Column - Email List and Matches */}
+        <div className="middle-column">
+          <section className="email-list">
+            <h3>📬 Recent Emails</h3>
+            {extractedSkills.length > 0 && (
+              <div className="skills-section">
+                <h4>Extracted Skills:</h4>
+                <div className="skills-tags">
+                  {extractedSkills.map((skill, index) => (
+                    <span key={index} className="skill-tag">
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {!Array.isArray(emails) || emails.length === 0 ? (
+              <p className="no-emails">No emails to display.</p>
+            ) : (
+              <div className="email-grid">
+                {emails.slice(0, 10).map((email, index) => (
+                  <EmailCard
+                    key={email?.id || index}
+                    subject={email?.subject || 'No Subject'}
+                    snippet={email?.snippet || 'No preview available'}
+                    onClick={() => handleEmailSelect(email)}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+
+          {extractedSkills.length > 0 && (
+            <SuggestedMatches 
+              skills={extractedSkills}
+              emails={emails}
+            />
+          )}
+        </div>
+
+        {/* Right Column - Suggestion Panel */}
+        <div className="right-column">
+          <SuggestionPanel 
+            selectedEmail={selectedEmail}
+            skills={extractedSkills}
+          />
+        </div>
       </div>
-
-      <ResumeUpload onSkillsExtracted={handleSkillsExtracted} />
-
-      <section className="email-list">
-        <h3>📬 Recent Emails</h3>
-        {extractedSkills.length > 0 && (
-          <div className="skills-section">
-            <h4>Extracted Skills:</h4>
-            <div className="skills-tags">
-              {extractedSkills.map((skill, index) => (
-                <span key={index} className="skill-tag">
-                  {skill}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-        {!Array.isArray(emails) || emails.length === 0 ? (
-          <p className="no-emails">No emails to display.</p>
-        ) : (
-          <div className="email-grid">
-            {emails.slice(0, 10).map((email, index) => (
-              <EmailCard
-                key={email?.id || index}
-                subject={email?.subject || 'No Subject'}
-                snippet={email?.snippet || 'No preview available'}
-              />
-            ))}
-          </div>
-        )}
-      </section>
 
       <style jsx="true">{`
         .dashboard {
           padding: 2rem;
-          max-width: 1200px;
+          max-width: 1600px;
           margin: 0 auto;
+        }
+
+        .dashboard-grid {
+          display: grid;
+          grid-template-columns: 300px 1fr 300px;
+          gap: 2rem;
+        }
+
+        .left-column, .middle-column, .right-column {
+          display: flex;
+          flex-direction: column;
+          gap: 2rem;
         }
 
         .user-info {
           text-align: center;
-          margin-bottom: 2rem;
           padding: 1rem;
           background: white;
           border-radius: 8px;
@@ -128,7 +172,6 @@ export default function EmailDashboard({ user, emails = [], onLogout }) {
         .email-grid {
           display: grid;
           gap: 1rem;
-          margin-top: 1rem;
         }
 
         .no-emails {
@@ -152,7 +195,25 @@ export default function EmailDashboard({ user, emails = [], onLogout }) {
           background: #dc2626;
         }
 
-        @media (min-width: 640px) {
+        @media (max-width: 1200px) {
+          .dashboard-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .right-column {
+            order: 2;
+          }
+
+          .middle-column {
+            order: 1;
+          }
+
+          .left-column {
+            order: 0;
+          }
+        }
+
+        @media (min-width: 640px) and (max-width: 1200px) {
           .email-grid {
             grid-template-columns: repeat(2, 1fr);
           }
