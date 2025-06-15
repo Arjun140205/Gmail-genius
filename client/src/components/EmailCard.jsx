@@ -29,34 +29,25 @@ const IconWrapper = styled.div`
   background: #f5f5f5;
   padding: 0.75rem;
   border-radius: 6px;
-  font-size: 1.25rem;
-  min-width: 48px;
-  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-
-  @media (max-width: 640px) {
-    display: none;
-  }
 `;
 
-const Details = styled.div`
+const TextContent = styled.div`
   flex: 1;
 `;
 
-const Subject = styled.h4`
-  font-weight: 600;
-  font-size: 1.1rem;
-  color: #262626;
-  margin-bottom: 0.5rem;
-  line-height: 1.4;
+const Subject = styled.h3`
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: #1a1a1a;
 `;
 
 const Snippet = styled.p`
-  color: #525252;
-  font-size: 0.95rem;
-  margin-bottom: 0.75rem;
+  margin: 0;
+  color: #666;
+  font-size: 0.875rem;
   line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -64,60 +55,17 @@ const Snippet = styled.p`
   overflow: hidden;
 `;
 
-const DateText = styled.p`
-  color: #737373;
-  font-size: 0.875rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-
-  &:before {
-    content: '•';
-    font-size: 1.2em;
-    line-height: 0;
-    color: #a3a3a3;
-  }
-`;
-
-const StyledMark = styled.mark`
-  background-color: #fef9c3;
-  color: #854d0e;
-  padding: 0.1em 0.2em;
-  border-radius: 2px;
-`;
-
-function highlight(text, keyword) {
-  if (!keyword) return text;
-  const parts = text.split(new RegExp(`(${keyword})`, 'gi'));
-  return parts.map((part, i) =>
-    part.toLowerCase() === keyword.toLowerCase() ? (
-      <StyledMark key={i}>{part}</StyledMark>
-    ) : (
-      part
-    )
-  );
-}
-
-const EmailCard = ({ email, searchTerm, onClick }) => {
-  const { subject, snippet, internalDate } = email;
-
-  const formattedDate = internalDate
-    ? new Date(Number(internalDate)).toLocaleString()
-    : '';
-
+const EmailCard = ({ subject = 'No Subject', snippet = 'No preview available', onClick }) => {
   return (
     <Card onClick={onClick}>
       <Content>
         <IconWrapper>
-          <span>📧</span>
+          <span role="img" aria-label="email">✉️</span>
         </IconWrapper>
-        <Details>
-          <Subject>
-            {highlight(subject || '(No Subject)', searchTerm)}
-          </Subject>
-          <Snippet>{highlight(snippet || '', searchTerm)}</Snippet>
-          <DateText>{formattedDate}</DateText>
-        </Details>
+        <TextContent>
+          <Subject>{subject}</Subject>
+          <Snippet>{snippet}</Snippet>
+        </TextContent>
       </Content>
     </Card>
   );
