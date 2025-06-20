@@ -1,14 +1,16 @@
 // src/components/EmailCard.jsx
-import React, { useState, useEffect } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
-import { savedEmailsApi } from '../utils/api';
 import { calculateMatchScore } from '../utils/scoreUtils';
+import { detectSkillGaps } from '../utils/skillGapUtils';
 import MatchScore from './MatchScore';
 import EmailTags from './EmailTags';
+import SkillGapAnalysis from './SkillGapAnalysis';
+import ChatAssistant from './ChatAssistant';
 import { StarIcon as StarOutline } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid';
 
-// Base styled components without special props
+// Styled components...
 const StyledCard = styled.div`
   background: #fafafa;
   border: 1px solid #e5e5e5;
@@ -33,10 +35,9 @@ const StyledCard = styled.div`
   }
 `;
 
-// React component to handle props
-const Card = ({ isSelected, ...props }) => (
+const Card = React.memo(({ isSelected, ...props }) => (
   <StyledCard className={isSelected ? 'selected' : ''} {...props} />
-);
+));
 
 const Content = styled.div`
   display: flex;
@@ -94,66 +95,60 @@ const StyledSaveButton = styled.button`
   }
 `;
 
-// React component to handle the save button props
-const SaveButton = ({ isSaved, ...props }) => (
+const SaveButton = React.memo(({ isSaved, ...props }) => (
   <StyledSaveButton
     style={{
       color: isSaved ? '#fbbf24' : '#9ca3af',
     }}
     {...props}
   />
-);
+));
 
-const EmailCard = ({ 
+const ExpandedContent = styled.div`
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e5e5;
+`;
+
+const EmailCard = React.memo(({ 
   id,
   subject = 'No Subject', 
   snippet = 'No preview available', 
   onClick,
   isSelected,
   skills = [],
+  isSaved,
+  onSave
 }) => {
-  const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    checkSavedStatus();
-  }, [id]);
-
-  const checkSavedStatus = async () => {
-    try {
-      const response = await savedEmailsApi.checkSavedStatus(id);
-      setIsSaved(response.data.isSaved);
-    } catch (error) {
-      console.error('Error checking saved status:', error);
-    }
-  };
-
-  const handleSaveToggle = async (e) => {
+  const handleSaveToggle = useCallback(async (e) => {
     e.stopPropagation(); // Prevent card selection when clicking save
     if (isLoading) return;
 
     setIsLoading(true);
     try {
-      if (isSaved) {
-        await savedEmailsApi.unsaveEmail(id);
-        setIsSaved(false);
-      } else {
-        await savedEmailsApi.saveEmail({
-          emailId: id,
-          subject,
-          snippet
-        });
-        setIsSaved(true);
-      }
+      await onSave({
+        id,
+        subject,
+        snippet
+      });
     } catch (error) {
       console.error('Error toggling save status:', error);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id, subject, snippet, isLoading, onSave]);
 
-  const emailContent = `${subject} ${snippet}`;
-  const { score } = calculateMatchScore(emailContent, skills);
+  // Memoize computed values
+  const emailContent = useMemo(() => `${subject} ${snippet}`, [subject, snippet]);
+  const score = useMemo(() => calculateMatchScore(emailContent, skills).score, [emailContent, skills]);
+  const skillAnalysis = useMemo(() => detectSkillGaps(emailContent, skills), [emailContent, skills]);
+
+  // Memoize the analysis complete handler
+  const handleAnalysisComplete = useCallback((analysis) => {
+    console.log('Analysis complete:', analysis);
+  }, []);
 
   return (
     <Card onClick={onClick} isSelected={isSelected}>
@@ -180,8 +175,52 @@ const EmailCard = ({
           <MatchScore score={score} />
         </TextContent>
       </Content>
+      {isSelected && (
+        <ExpandedContent>
+          <div className="expanded-sections">
+            <div className="skill-analysis">
+              <SkillGapAnalysis analysis={skillAnalysis} />
+            </div>
+            <div className="chat-analysis">
+              <ChatAssistant 
+                email={{ subject, snippet }} 
+                skills={skills}
+                onAnalysisComplete={handleAnalysisComplete}
+              />
+            </div>
+          </div>
+
+          <style jsx="true">{`
+            .expanded-sections {
+              display: grid;
+              grid-template-columns: 1fr;
+              gap: 1rem;
+            }
+
+            @media (min-width: 1024px) {
+              .expanded-sections {
+                grid-template-columns: 1fr 1fr;
+              }
+            }
+
+            .skill-analysis {
+              background: #f9fafb;
+              padding: 1rem;
+              border-radius: 8px;
+            }
+
+            .chat-analysis {
+              background: white;
+              border-radius: 8px;
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            }
+          `}</style>
+        </ExpandedContent>
+      )}
     </Card>
   );
-};
+});
+
+EmailCard.displayName = 'EmailCard';
 
 export default EmailCard;
