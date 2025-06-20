@@ -3,12 +3,14 @@ import dotenv from 'dotenv';
 import mongoose from 'mongoose';
 import cors from 'cors';
 import session from 'express-session';
-import passport from 'passport';
+import passport from './config/passportConfig.js';
+import { handleAuthError } from './config/passportConfig.js';
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import gmailRoutes from './routes/gmailRoutes.js';
 import resumeRoutes from './routes/resumeRoutes.js';
 import suggestionRoutes from './routes/suggestionRoutes.js';
+import savedEmailRoutes from './routes/savedEmailRoutes.js';
 
 dotenv.config();
 
@@ -38,12 +40,26 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+// ✅ Add debug route
+app.get('/api/debug', (req, res) => {
+  res.json({
+    message: 'API is working',
+    session: req.session,
+    isAuthenticated: req.isAuthenticated(),
+    user: req.user
+  });
+});
+
 // ✅ Routes
 app.use('/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/gmail', gmailRoutes);
 app.use('/api/resume', resumeRoutes);
 app.use('/api/suggestions', suggestionRoutes);
+app.use('/api/saved-emails', savedEmailRoutes);
+
+// ✅ Auth error handler
+app.use(handleAuthError);
 
 // ✅ Root route
 app.get('/', (req, res) => {
