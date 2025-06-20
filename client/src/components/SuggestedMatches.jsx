@@ -1,6 +1,6 @@
 // src/components/SuggestedMatches.jsx
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { suggestionsApi } from '../utils/api';
 import EmailCard from './EmailCard';
 
 const SuggestedMatches = ({ skills }) => {
@@ -11,7 +11,7 @@ const SuggestedMatches = ({ skills }) => {
 
     const fetchMatches = async () => {
       try {
-        const res = await axios.post('/api/suggestions/match', { skills });
+        const res = await suggestionsApi.matchSkills({ skills });
         setMatches(res.data.matches || []);
       } catch (err) {
         console.error('Match fetch error:', err);
