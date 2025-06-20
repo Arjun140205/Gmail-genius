@@ -17,4 +17,9 @@ export const savedEmailsApi = {
   checkSavedStatus: (emailId) => api.get(`/api/saved-emails/${emailId}/status`)
 };
 
+export const suggestionsApi = {
+  matchSkills: (data) => api.post('/api/suggestions/match', data),
+  generateSuggestions: (data) => api.post('/api/suggestions/generate', data)
+};
+
 export default api;
