@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { savedEmailsApi } from '../utils/api';
 import EmailCard from './EmailCard';
 import ResumeUpload from './ResumeUpload';
@@ -15,55 +15,85 @@ export default function EmailDashboard({ user, emails = [], onLogout }) {
   const [selectedTags, setSelectedTags] = useState([]);
   const [activeTab, setActiveTab] = useState('inbox');
   const [savedEmails, setSavedEmails] = useState([]);
-  const profileImage = user?.picture || '/api/user/profile-image';
-  const userName = user?.name || 'User';
-  const userEmail = user?.email || '';
+  
+  const profileImage = useMemo(() => user?.picture || '/api/user/profile-image', [user?.picture]);
+  const userName = useMemo(() => user?.name || 'User', [user?.name]);
+  const userEmail = useMemo(() => user?.email || '', [user?.email]);
 
-  useEffect(() => {
-    // Fetch saved emails on component mount
-    fetchSavedEmails();
-  }, []);
+  // Memoize filtered emails to prevent unnecessary recalculations
+  const filteredEmails = useMemo(
+    () => filterEmailsByTags(emails, selectedTags),
+    [emails, selectedTags]
+  );
 
-  const fetchSavedEmails = async () => {
+  const fetchSavedEmails = useCallback(async () => {
     try {
       const response = await savedEmailsApi.getSaved();
       setSavedEmails(response.data || []);
     } catch (error) {
       console.error('Error fetching saved emails:', error);
     }
-  };
+  }, []);
 
-  const handleSaveEmail = async (email) => {
+  const handleSaveEmail = useCallback(async (email) => {
     try {
       await savedEmailsApi.saveEmail({
         emailId: email.id,
         subject: email.subject,
         snippet: email.snippet
       });
-      fetchSavedEmails(); // Refresh saved emails list
+      fetchSavedEmails();
     } catch (error) {
       console.error('Error saving email:', error);
     }
-  };
+  }, [fetchSavedEmails]);
 
-  const handleUnsaveEmail = async (emailId) => {
+  const handleUnsaveEmail = useCallback(async (emailId) => {
     try {
       await savedEmailsApi.unsaveEmail(emailId);
-      fetchSavedEmails(); // Refresh saved emails list
+      fetchSavedEmails();
     } catch (error) {
       console.error('Error removing saved email:', error);
     }
-  };
+  }, [fetchSavedEmails]);
 
-  const handleSkillsExtracted = (skills) => {
-    setExtractedSkills(skills);
-  };
+  const handleSkillsExtracted = useCallback((skills) => {
+    setExtractedSkills(prevSkills => {
+      // Only update if the skills have actually changed
+      if (JSON.stringify(prevSkills) === JSON.stringify(skills)) {
+        return prevSkills;
+      }
+      return skills;
+    });
+  }, []);
 
-  const handleEmailSelect = (email) => {
-    setSelectedEmail(email);
-  };
+  const handleEmailSelect = useCallback((email) => {
+    setSelectedEmail(prev => {
+      if (prev?.id === email?.id) return prev;
+      return email;
+    });
+  }, []);
 
-  const filteredEmails = filterEmailsByTags(emails, selectedTags);
+  useEffect(() => {
+    fetchSavedEmails();
+  }, [fetchSavedEmails]);
+
+  // Memoize the EmailCard components to prevent unnecessary re-renders
+  const emailCards = useMemo(() => {
+    return filteredEmails.slice(0, 10).map((email, index) => (
+      <EmailCard
+        key={email?.id || index}
+        id={email?.id}
+        subject={email?.subject || 'No Subject'}
+        snippet={email?.snippet || 'No preview available'}
+        onClick={() => handleEmailSelect(email)}
+        isSelected={selectedEmail?.id === email?.id}
+        skills={extractedSkills}
+        isSaved={savedEmails.some(saved => saved.id === email?.id)}
+        onSave={handleSaveEmail}
+      />
+    ));
+  }, [filteredEmails, selectedEmail, extractedSkills, savedEmails, handleEmailSelect, handleSaveEmail]);
 
   return (
     <div className="dashboard-container">
@@ -159,19 +189,7 @@ export default function EmailDashboard({ user, emails = [], onLogout }) {
                 </div>
               ) : (
                 <div className="email-grid">
-                  {filteredEmails.slice(0, 10).map((email, index) => (
-                    <EmailCard
-                      key={email?.id || index}
-                      id={email?.id}
-                      subject={email?.subject || 'No Subject'}
-                      snippet={email?.snippet || 'No preview available'}
-                      onClick={() => handleEmailSelect(email)}
-                      isSelected={selectedEmail?.id === email?.id}
-                      skills={extractedSkills}
-                      isSaved={savedEmails.some(saved => saved.id === email?.id)}
-                      onSave={handleSaveEmail}
-                    />
-                  ))}
+                  {emailCards}
                 </div>
               )}
             </section>
@@ -440,4 +458,4 @@ export default function EmailDashboard({ user, emails = [], onLogout }) {
       `}</style>
     </div>
   );
-}
+};
