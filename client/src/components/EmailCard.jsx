@@ -8,9 +8,8 @@ import EmailTags from './EmailTags';
 import { StarIcon as StarOutline } from '@heroicons/react/24/outline';
 import { StarIcon as StarSolid } from '@heroicons/react/24/solid';
 
-const Card = styled.div.attrs(props => ({
-  className: props.isSelected ? 'selected' : ''
-}))`
+// Base styled components without special props
+const StyledCard = styled.div`
   background: #fafafa;
   border: 1px solid #e5e5e5;
   padding: 1.25rem;
@@ -33,6 +32,11 @@ const Card = styled.div.attrs(props => ({
     box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
   }
 `;
+
+// React component to handle props
+const Card = ({ isSelected, ...props }) => (
+  <StyledCard className={isSelected ? 'selected' : ''} {...props} />
+);
 
 const Content = styled.div`
   display: flex;
@@ -73,38 +77,32 @@ const Snippet = styled.p`
   font-family: 'Inter', sans-serif;
 `;
 
-const CardActions = styled.div`
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  display: flex;
-  gap: 0.5rem;
-`;
-
-const SaveButton = styled.button.attrs(props => ({
-  'data-saved': props.isSaved ? 'true' : 'false'
-}))`
+const StyledSaveButton = styled.button`
   position: absolute;
   top: 1rem;
   right: 1rem;
   background: none;
   border: none;
   cursor: pointer;
-  color: ${props => props['data-saved'] === 'true' ? '#fbbf24' : '#9ca3af'};
   transition: all 0.2s ease;
   padding: 0.5rem;
   border-radius: 9999px;
-
-  &:hover {
-    color: ${props => props['data-saved'] === 'true' ? '#f59e0b' : '#6b7280'};
-    background: rgba(0, 0, 0, 0.05);
-  }
 
   svg {
     width: 1.5rem;
     height: 1.5rem;
   }
 `;
+
+// React component to handle the save button props
+const SaveButton = ({ isSaved, ...props }) => (
+  <StyledSaveButton
+    style={{
+      color: isSaved ? '#fbbf24' : '#9ca3af',
+    }}
+    {...props}
+  />
+);
 
 const EmailCard = ({ 
   id,
@@ -113,7 +111,6 @@ const EmailCard = ({
   onClick,
   isSelected,
   skills = [],
-  onSave,
 }) => {
   const [isSaved, setIsSaved] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
