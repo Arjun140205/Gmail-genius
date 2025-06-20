@@ -48,63 +48,90 @@ export const generateSuggestions = async (req, res) => {
     }
 
     // TODO: Implement suggestion generation logic
-    // This is a placeholder response
-    const suggestions = {
-      improvements: [
-        'Consider adding a more specific subject line',
-        'The email could be more concise'
-      ]
-    };
-
-    res.json(suggestions);
+    res.json({ suggestions: [] });
   } catch (error) {
     console.error('Error generating suggestions:', error);
-    res.status(500).json({ message: 'Error generating suggestions' });
+    res.status(500).json({ message: 'Error generating suggestions', error: error.message });
   }
 };
 
 export const matchSuggestions = async (req, res) => {
   try {
-    if (!req.isAuthenticated()) {
-      return res.status(401).json({ message: 'User not authenticated' });
+    const { email, skills } = req.body;
+    
+    if (!email || !skills) {
+      return res.status(400).json({ 
+        message: 'Both email content and skills are required.' 
+      });
     }
 
-    const { skills } = req.body;
-    if (!skills || !Array.isArray(skills) || skills.length === 0) {
-      return res.status(400).json({ message: 'Skills must be provided as an array.' });
-    }
+    const emailContent = typeof email === 'string' ? email : `${email.subject} ${email.snippet}`;
+    
+    // Extract tech keywords from the email
+    const techKeywords = extractTechKeywords(emailContent.toLowerCase());
+    
+    // Compare with user's skills
+    const skillsLower = skills.map(s => s.toLowerCase());
+    
+    const matches = [];
+    const gaps = [];
+    const related = [];
 
-    // Validate and format skills
-    const formattedSkills = skills.map(skill => {
-      if (typeof skill === 'string') {
-        return skill;
-      } else if (typeof skill === 'object' && skill !== null && 'name' in skill) {
-        return skill.name;
+    // Check each keyword
+    techKeywords.forEach(keyword => {
+      if (skillsLower.some(skill => skill.includes(keyword) || keyword.includes(skill))) {
+        matches.push(keyword);
       } else {
-        console.warn('Invalid skill format:', skill);
-        return null;
+        gaps.push(keyword);
       }
-    }).filter(skill => skill !== null);
+    });
 
-    if (formattedSkills.length === 0) {
-      return res.status(400).json({ message: 'No valid skills provided.' });
-    }
+    // Find related skills
+    gaps.forEach(gap => {
+      const relatedSkills = findRelatedSkills(gap);
+      related.push(...relatedSkills.filter(s => !related.includes(s)));
+    });
 
-    // Fetch emails from Gmail
-    const emails = await getEmailsFromGmail(req);
-
-    // Match emails with skills using the matcher utility
-    const matched = await matchSkillsToEmails(emails, formattedSkills);
-
-    res.json({ suggestions: matched });
+    res.json({
+      matches,
+      gaps,
+      related,
+      summary: {
+        totalMatches: matches.length,
+        totalGaps: gaps.length,
+        matchPercentage: Math.round((matches.length / (matches.length + gaps.length)) * 100)
+      }
+    });
   } catch (error) {
-    console.error('Error matching suggestions:', error);
-    if (error.message === 'User not authenticated') {
-      res.status(401).json({ message: 'User not authenticated' });
-    } else if (error.code === 429) {
-      res.status(429).json({ message: 'Too many requests. Please try again later.' });
-    } else {
-      res.status(500).json({ message: 'Error matching suggestions' });
-    }
+    console.error('Error matching skills:', error);
+    res.status(500).json({ message: 'Error matching skills', error: error.message });
   }
+};
+
+// Helper function to extract tech keywords
+const extractTechKeywords = (text) => {
+  const keywords = [
+    'javascript', 'typescript', 'python', 'java', 'c#', 'react', 'vue', 'angular',
+    'node.js', 'express', 'django', 'flask', 'spring', 'docker', 'kubernetes',
+    'aws', 'azure', 'gcp', 'sql', 'mongodb', 'postgresql', 'redis', 'graphql',
+    'rest', 'api', 'git', 'ci/cd', 'jenkins', 'github actions', 'agile', 'scrum'
+  ];
+
+  return keywords.filter(keyword => text.includes(keyword));
+};
+
+// Helper function to find related skills
+const findRelatedSkills = (skill) => {
+  const relatedSkills = {
+    'react': ['redux', 'nextjs', 'gatsby'],
+    'vue': ['vuex', 'nuxt'],
+    'angular': ['rxjs', 'ngrx'],
+    'node.js': ['express', 'nestjs', 'typescript'],
+    'python': ['django', 'flask', 'fastapi'],
+    'java': ['spring', 'hibernate', 'maven'],
+    'docker': ['kubernetes', 'jenkins', 'ci/cd'],
+    // Add more relationships as needed
+  };
+
+  return relatedSkills[skill] || [];
 };
