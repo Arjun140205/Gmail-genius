@@ -5,6 +5,19 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Authentication middleware
+export const isAuthenticated = (req, res, next) => {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ message: 'Not authenticated' });
+};
+
+// Authentication error handler
+export const handleAuthError = (err, req, res, next) => {
+  res.status(401).json({ message: 'Authentication error', error: err.message });
+};
+
 passport.use(
   new GoogleStrategy(
     {
