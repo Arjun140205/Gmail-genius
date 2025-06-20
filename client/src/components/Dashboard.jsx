@@ -1,19 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { savedEmailsApi } from '../utils/api';
 import EmailCard from './EmailCard';
 import ResumeUpload from './ResumeUpload';
 import AnalyticsPanel from './AnalyticsPanel';
 import SuggestionPanel from './SuggestionPanel';
 import SuggestedMatches from './SuggestedMatches';
 import TagFilter from './TagFilter';
+import SavedEmails from './SavedEmails';
 import { filterEmailsByTags } from '../utils/tagUtils';
 
 export default function EmailDashboard({ user, emails = [], onLogout }) {
   const [extractedSkills, setExtractedSkills] = useState([]);
   const [selectedEmail, setSelectedEmail] = useState(null);
   const [selectedTags, setSelectedTags] = useState([]);
+  const [activeTab, setActiveTab] = useState('inbox');
+  const [savedEmails, setSavedEmails] = useState([]);
   const profileImage = user?.picture || '/api/user/profile-image';
   const userName = user?.name || 'User';
   const userEmail = user?.email || '';
+
+  useEffect(() => {
+    // Fetch saved emails on component mount
+    fetchSavedEmails();
+  }, []);
+
+  const fetchSavedEmails = async () => {
+    try {
+      const response = await savedEmailsApi.getSaved();
+      setSavedEmails(response.data || []);
+    } catch (error) {
+      console.error('Error fetching saved emails:', error);
+    }
+  };
+
+  const handleSaveEmail = async (email) => {
+    try {
+      await savedEmailsApi.saveEmail({
+        emailId: email.id,
+        subject: email.subject,
+        snippet: email.snippet
+      });
+      fetchSavedEmails(); // Refresh saved emails list
+    } catch (error) {
+      console.error('Error saving email:', error);
+    }
+  };
+
+  const handleUnsaveEmail = async (emailId) => {
+    try {
+      await savedEmailsApi.unsaveEmail(emailId);
+      fetchSavedEmails(); // Refresh saved emails list
+    } catch (error) {
+      console.error('Error removing saved email:', error);
+    }
+  };
 
   const handleSkillsExtracted = (skills) => {
     setExtractedSkills(skills);
@@ -61,6 +101,21 @@ export default function EmailDashboard({ user, emails = [], onLogout }) {
 
       <div className="dashboard-grid">
         <div className="left-column">
+          <div className="nav-tabs">
+            <button
+              className={`tab ${activeTab === 'inbox' ? 'active' : ''}`}
+              onClick={() => setActiveTab('inbox')}
+            >
+              📥 Inbox
+            </button>
+            <button
+              className={`tab ${activeTab === 'saved' ? 'active' : ''}`}
+              onClick={() => setActiveTab('saved')}
+            >
+              📌 Saved Emails
+            </button>
+          </div>
+
           <TagFilter 
             selectedTags={selectedTags}
             onTagSelect={setSelectedTags}
@@ -70,54 +125,64 @@ export default function EmailDashboard({ user, emails = [], onLogout }) {
         </div>
 
         <div className="middle-column">
-          <section className="email-section">
-            <div className="section-header">
-              <h2 className="section-title">📬 Recent Emails</h2>
-              {selectedTags.length > 0 && (
-                <span className="filter-info">
-                  Showing {filteredEmails.length} filtered results
-                </span>
-              )}
-            </div>
-
-            {extractedSkills.length > 0 && (
-              <div className="skills-section">
-                <h3 className="skills-title">Your Skills</h3>
-                <div className="skills-tags">
-                  {extractedSkills.map((skill, index) => (
-                    <span key={index} className="skill-tag">
-                      {skill}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-            
-            {!Array.isArray(filteredEmails) || filteredEmails.length === 0 ? (
-              <div className="no-emails">
-                {selectedTags.length > 0 ? (
-                  <p>No emails match the selected filters</p>
-                ) : (
-                  <p>No emails to display</p>
+          {activeTab === 'inbox' ? (
+            <section className="email-section">
+              <div className="section-header">
+                <h2 className="section-title">📬 Recent Emails</h2>
+                {selectedTags.length > 0 && (
+                  <span className="filter-info">
+                    Showing {filteredEmails.length} filtered results
+                  </span>
                 )}
               </div>
-            ) : (
-              <div className="email-grid">
-                {filteredEmails.slice(0, 10).map((email, index) => (
-                  <EmailCard
-                    key={email?.id || index}
-                    subject={email?.subject || 'No Subject'}
-                    snippet={email?.snippet || 'No preview available'}
-                    onClick={() => handleEmailSelect(email)}
-                    isSelected={selectedEmail?.id === email?.id}
-                    skills={extractedSkills}
-                  />
-                ))}
-              </div>
-            )}
-          </section>
 
-          {extractedSkills.length > 0 && (
+              {extractedSkills.length > 0 && (
+                <div className="skills-section">
+                  <h3 className="skills-title">Your Skills</h3>
+                  <div className="skills-tags">
+                    {extractedSkills.map((skill, index) => (
+                      <span key={index} className="skill-tag">
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {!Array.isArray(filteredEmails) || filteredEmails.length === 0 ? (
+                <div className="no-emails">
+                  {selectedTags.length > 0 ? (
+                    <p>No emails match the selected filters</p>
+                  ) : (
+                    <p>No emails to display</p>
+                  )}
+                </div>
+              ) : (
+                <div className="email-grid">
+                  {filteredEmails.slice(0, 10).map((email, index) => (
+                    <EmailCard
+                      key={email?.id || index}
+                      id={email?.id}
+                      subject={email?.subject || 'No Subject'}
+                      snippet={email?.snippet || 'No preview available'}
+                      onClick={() => handleEmailSelect(email)}
+                      isSelected={selectedEmail?.id === email?.id}
+                      skills={extractedSkills}
+                      isSaved={savedEmails.some(saved => saved.id === email?.id)}
+                      onSave={handleSaveEmail}
+                    />
+                  ))}
+                </div>
+              )}
+            </section>
+          ) : (
+            <SavedEmails 
+              emails={savedEmails}
+              onUnsaveEmail={handleUnsaveEmail}
+            />
+          )}
+
+          {extractedSkills.length > 0 && activeTab === 'inbox' && (
             <SuggestedMatches 
               skills={extractedSkills}
               emails={emails}
@@ -302,6 +367,40 @@ export default function EmailDashboard({ user, emails = [], onLogout }) {
           font-family: 'Inter', sans-serif;
           font-size: 0.875rem;
           color: #6B7280;
+        }
+
+        .nav-tabs {
+          display: flex;
+          gap: 0.5rem;
+          background: white;
+          padding: 1rem;
+          border-radius: 12px;
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+          margin-bottom: 1rem;
+        }
+
+        .tab {
+          flex: 1;
+          padding: 0.75rem;
+          border: none;
+          border-radius: 6px;
+          background: transparent;
+          color: #6B7280;
+          font-family: 'Inter', sans-serif;
+          font-size: 0.875rem;
+          font-weight: 500;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .tab:hover {
+          background: #F3F4F6;
+          color: #4F46E5;
+        }
+
+        .tab.active {
+          background: #4F46E5;
+          color: white;
         }
 
         @media (max-width: 1200px) {
