@@ -1,11 +1,16 @@
 // src/components/EmailCard.jsx
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
+import { savedEmailsApi } from '../utils/api';
 import { calculateMatchScore } from '../utils/scoreUtils';
 import MatchScore from './MatchScore';
 import EmailTags from './EmailTags';
+import { StarIcon as StarOutline } from '@heroicons/react/24/outline';
+import { StarIcon as StarSolid } from '@heroicons/react/24/solid';
 
-const Card = styled.div`
+const Card = styled.div.attrs(props => ({
+  className: props.isSelected ? 'selected' : ''
+}))`
   background: #fafafa;
   border: 1px solid #e5e5e5;
   padding: 1.25rem;
@@ -22,11 +27,11 @@ const Card = styled.div`
     background: #ffffff;
   }
 
-  ${props => props.isSelected && `
+  &.selected {
     background: #ffffff;
     border-color: #4f46e5;
     box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
-  `}
+  }
 `;
 
 const Content = styled.div`
@@ -68,18 +73,105 @@ const Snippet = styled.p`
   font-family: 'Inter', sans-serif;
 `;
 
+const CardActions = styled.div`
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.5rem;
+`;
+
+const SaveButton = styled.button.attrs(props => ({
+  'data-saved': props.isSaved ? 'true' : 'false'
+}))`
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: ${props => props['data-saved'] === 'true' ? '#fbbf24' : '#9ca3af'};
+  transition: all 0.2s ease;
+  padding: 0.5rem;
+  border-radius: 9999px;
+
+  &:hover {
+    color: ${props => props['data-saved'] === 'true' ? '#f59e0b' : '#6b7280'};
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  svg {
+    width: 1.5rem;
+    height: 1.5rem;
+  }
+`;
+
 const EmailCard = ({ 
+  id,
   subject = 'No Subject', 
   snippet = 'No preview available', 
   onClick,
   isSelected,
-  skills = []
+  skills = [],
+  onSave,
 }) => {
+  const [isSaved, setIsSaved] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    checkSavedStatus();
+  }, [id]);
+
+  const checkSavedStatus = async () => {
+    try {
+      const response = await savedEmailsApi.checkSavedStatus(id);
+      setIsSaved(response.data.isSaved);
+    } catch (error) {
+      console.error('Error checking saved status:', error);
+    }
+  };
+
+  const handleSaveToggle = async (e) => {
+    e.stopPropagation(); // Prevent card selection when clicking save
+    if (isLoading) return;
+
+    setIsLoading(true);
+    try {
+      if (isSaved) {
+        await savedEmailsApi.unsaveEmail(id);
+        setIsSaved(false);
+      } else {
+        await savedEmailsApi.saveEmail({
+          emailId: id,
+          subject,
+          snippet
+        });
+        setIsSaved(true);
+      }
+    } catch (error) {
+      console.error('Error toggling save status:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const emailContent = `${subject} ${snippet}`;
   const { score } = calculateMatchScore(emailContent, skills);
 
   return (
     <Card onClick={onClick} isSelected={isSelected}>
+      <SaveButton
+        isSaved={isSaved}
+        onClick={handleSaveToggle}
+        disabled={isLoading}
+        title={isSaved ? "Remove from saved" : "Save for later"}
+      >
+        {isSaved ? (
+          <StarSolid className="h-6 w-6" />
+        ) : (
+          <StarOutline className="h-6 w-6" />
+        )}
+      </SaveButton>
       <Content>
         <IconWrapper>
           <span role="img" aria-label="email">✉️</span>
