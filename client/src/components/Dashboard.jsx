@@ -4,10 +4,13 @@ import ResumeUpload from './ResumeUpload';
 import AnalyticsPanel from './AnalyticsPanel';
 import SuggestionPanel from './SuggestionPanel';
 import SuggestedMatches from './SuggestedMatches';
+import TagFilter from './TagFilter';
+import { filterEmailsByTags } from '../utils/tagUtils';
 
 export default function EmailDashboard({ user, emails = [], onLogout }) {
   const [extractedSkills, setExtractedSkills] = useState([]);
   const [selectedEmail, setSelectedEmail] = useState(null);
+  const [selectedTags, setSelectedTags] = useState([]);
   const profileImage = user?.picture || '/api/user/profile-image';
   const userName = user?.name || 'User';
   const userEmail = user?.email || '';
@@ -19,6 +22,8 @@ export default function EmailDashboard({ user, emails = [], onLogout }) {
   const handleEmailSelect = (email) => {
     setSelectedEmail(email);
   };
+
+  const filteredEmails = filterEmailsByTags(emails, selectedTags);
 
   return (
     <div className="dashboard-container">
@@ -56,13 +61,25 @@ export default function EmailDashboard({ user, emails = [], onLogout }) {
 
       <div className="dashboard-grid">
         <div className="left-column">
+          <TagFilter 
+            selectedTags={selectedTags}
+            onTagSelect={setSelectedTags}
+          />
           <ResumeUpload onSkillsExtracted={handleSkillsExtracted} />
           <AnalyticsPanel emails={emails} skills={extractedSkills} />
         </div>
 
         <div className="middle-column">
           <section className="email-section">
-            <h2 className="section-title">📬 Recent Emails</h2>
+            <div className="section-header">
+              <h2 className="section-title">📬 Recent Emails</h2>
+              {selectedTags.length > 0 && (
+                <span className="filter-info">
+                  Showing {filteredEmails.length} filtered results
+                </span>
+              )}
+            </div>
+
             {extractedSkills.length > 0 && (
               <div className="skills-section">
                 <h3 className="skills-title">Your Skills</h3>
@@ -76,19 +93,24 @@ export default function EmailDashboard({ user, emails = [], onLogout }) {
               </div>
             )}
             
-            {!Array.isArray(emails) || emails.length === 0 ? (
+            {!Array.isArray(filteredEmails) || filteredEmails.length === 0 ? (
               <div className="no-emails">
-                <p>No emails to display</p>
+                {selectedTags.length > 0 ? (
+                  <p>No emails match the selected filters</p>
+                ) : (
+                  <p>No emails to display</p>
+                )}
               </div>
             ) : (
               <div className="email-grid">
-                {emails.slice(0, 10).map((email, index) => (
+                {filteredEmails.slice(0, 10).map((email, index) => (
                   <EmailCard
                     key={email?.id || index}
                     subject={email?.subject || 'No Subject'}
                     snippet={email?.snippet || 'No preview available'}
                     onClick={() => handleEmailSelect(email)}
                     isSelected={selectedEmail?.id === email?.id}
+                    skills={extractedSkills}
                   />
                 ))}
               </div>
@@ -267,6 +289,19 @@ export default function EmailDashboard({ user, emails = [], onLogout }) {
         .logout-button:hover {
           background: #4f46e5;
           color: white;
+        }
+
+        .section-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 1.5rem;
+        }
+
+        .filter-info {
+          font-family: 'Inter', sans-serif;
+          font-size: 0.875rem;
+          color: #6B7280;
         }
 
         @media (max-width: 1200px) {
