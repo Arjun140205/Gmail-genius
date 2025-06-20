@@ -1,6 +1,9 @@
 // src/components/EmailCard.jsx
 import React from 'react';
 import styled from 'styled-components';
+import { calculateMatchScore } from '../utils/scoreUtils';
+import MatchScore from './MatchScore';
+import EmailTags from './EmailTags';
 
 const Card = styled.div`
   background: #fafafa;
@@ -10,6 +13,7 @@ const Card = styled.div`
   margin-bottom: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
+  position: relative;
 
   &:hover {
     transform: translateY(-1px);
@@ -17,6 +21,12 @@ const Card = styled.div`
     border-color: #d4d4d4;
     background: #ffffff;
   }
+
+  ${props => props.isSelected && `
+    background: #ffffff;
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+  `}
 `;
 
 const Content = styled.div`
@@ -42,10 +52,12 @@ const Subject = styled.h3`
   margin: 0 0 0.5rem;
   font-size: 1rem;
   color: #1a1a1a;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
 `;
 
 const Snippet = styled.p`
-  margin: 0;
+  margin: 0 0 1rem;
   color: #666;
   font-size: 0.875rem;
   line-height: 1.5;
@@ -53,11 +65,21 @@ const Snippet = styled.p`
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  font-family: 'Inter', sans-serif;
 `;
 
-const EmailCard = ({ subject = 'No Subject', snippet = 'No preview available', onClick }) => {
+const EmailCard = ({ 
+  subject = 'No Subject', 
+  snippet = 'No preview available', 
+  onClick,
+  isSelected,
+  skills = []
+}) => {
+  const emailContent = `${subject} ${snippet}`;
+  const { score } = calculateMatchScore(emailContent, skills);
+
   return (
-    <Card onClick={onClick}>
+    <Card onClick={onClick} isSelected={isSelected}>
       <Content>
         <IconWrapper>
           <span role="img" aria-label="email">✉️</span>
@@ -65,6 +87,8 @@ const EmailCard = ({ subject = 'No Subject', snippet = 'No preview available', o
         <TextContent>
           <Subject>{subject}</Subject>
           <Snippet>{snippet}</Snippet>
+          <EmailTags email={{ subject, snippet }} />
+          <MatchScore score={score} />
         </TextContent>
       </Content>
     </Card>
