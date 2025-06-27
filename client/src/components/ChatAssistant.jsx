@@ -1,23 +1,16 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { detectSkillGaps } from '../utils/skillGapUtils';
 
 function ChatAssistant({ email, skills = [], initialSuggestions = [], onAnalysisComplete }) {
   const [messages, setMessages] = useState([]);
   const [analysis, setAnalysis] = useState(null);
   const [isProcessing, setIsProcessing] = useState(true);
-  const [lastAnalysis, setLastAnalysis] = useState({ emailContent: '', skills: [] });
 
   // Memoize email content to prevent unnecessary recalculations
   const emailContent = useMemo(
     () => email ? `${email.subject || ''} ${email.snippet || ''}` : '',
     [email]
   );
-
-  // Memoize whether we need to reanalyze
-  const shouldReanalyze = useMemo(() => {
-    return emailContent !== lastAnalysis.emailContent || 
-           JSON.stringify(skills) !== JSON.stringify(lastAnalysis.skills);
-  }, [emailContent, skills, lastAnalysis]);
 
   const getNextSteps = useCallback((analysis) => {
     if (!analysis) return [];
@@ -38,97 +31,48 @@ function ChatAssistant({ email, skills = [], initialSuggestions = [], onAnalysis
     return steps;
   }, []);
 
-  const buildMessages = useCallback((skillGapAnalysis) => {
-    const newMessages = [];
-
-    // Only add messages if we have content to analyze
-    if (!emailContent) {
-      return newMessages;
-    }
-
-    newMessages.push({
-      type: 'assistant',
-      content: "👋 Let me analyze this opportunity for you..."
-    });
-
-    // Add initial suggestions if available
-    if (initialSuggestions?.length > 0) {
-      newMessages.push({
-        type: 'assistant',
-        content: "First, here's what I noticed about this opportunity:"
-      });
-      
-      for (const suggestion of initialSuggestions) {
-        newMessages.push({
-          type: 'assistant',
-          content: suggestion
-        });
-      }
-    }
-
-    // Handle case where no skills are provided
-    if (!skills?.length) {
-      newMessages.push({
-        type: 'assistant',
-        content: "📝 Upload your resume or add your skills to get personalized match analysis!"
-      });
-      return newMessages;
-    }
-
-    // Only proceed with skill analysis if we have both email content and skills
-    if (skillGapAnalysis) {
-      if (skillGapAnalysis.matches.length > 0) {
-        const totalSkills = skillGapAnalysis.matches.length + skillGapAnalysis.gaps.length;
-        const matchPercentage = totalSkills > 0 
-          ? Math.round((skillGapAnalysis.matches.length / totalSkills) * 100)
-          : 0;
-          
-        newMessages.push({
-          type: 'assistant',
-          content: `📊 You have a ${matchPercentage}% match with this opportunity.`
-        });
-
-        if (skillGapAnalysis.matches.length > 0) {
-          newMessages.push({
-            type: 'assistant',
-            content: `✅ Your strengths: ${skillGapAnalysis.matches.map(m => m.displayName).join(', ')}`
-          });
-        }
-      }
-
-      if (skillGapAnalysis.gaps.length > 0) {
-        const requiredGaps = skillGapAnalysis.gaps.filter(g => g.requirementLevel === 'required');
-        if (requiredGaps.length > 0) {
-          newMessages.push({
-            type: 'assistant',
-            content: `❗ Important skills to focus on: ${requiredGaps.map(g => g.displayName).join(', ')}`
-          });
-        }
-      }
-
-      const nextSteps = getNextSteps(skillGapAnalysis);
-      if (nextSteps.length > 0) {
-        newMessages.push({
-          type: 'assistant',
-          content: "Next steps:\n" + nextSteps.join('\n')
-        });
-      }
-    }
-
-    return newMessages;
-  }, [emailContent, skills, initialSuggestions, getNextSteps]);
-
   useEffect(() => {
     let isMounted = true;
 
-    const analyze = async () => {
-      if (!shouldReanalyze) {
-        setIsProcessing(false);
-        return;
+    const buildMessages = (skillGapAnalysis) => {
+      const newMessages = [];
+      if (!emailContent) return newMessages;
+      newMessages.push({ type: 'assistant', content: "👋 Let me analyze this opportunity for you..." });
+      if (initialSuggestions?.length > 0) {
+        newMessages.push({ type: 'assistant', content: "First, here's what I noticed about this opportunity:" });
+        for (const suggestion of initialSuggestions) {
+          newMessages.push({ type: 'assistant', content: suggestion });
+        }
       }
+      if (!skills?.length) {
+        newMessages.push({ type: 'assistant', content: "📝 Upload your resume or add your skills to get personalized match analysis!" });
+        return newMessages;
+      }
+      if (skillGapAnalysis) {
+        if (skillGapAnalysis.matches.length > 0) {
+          const totalSkills = skillGapAnalysis.matches.length + skillGapAnalysis.gaps.length;
+          const matchPercentage = totalSkills > 0 ? Math.round((skillGapAnalysis.matches.length / totalSkills) * 100) : 0;
+          newMessages.push({ type: 'assistant', content: `📊 You have a ${matchPercentage}% match with this opportunity.` });
+          if (skillGapAnalysis.matches.length > 0) {
+            newMessages.push({ type: 'assistant', content: `✅ Your strengths: ${skillGapAnalysis.matches.map(m => m.displayName).join(', ')}` });
+          }
+        }
+        if (skillGapAnalysis.gaps.length > 0) {
+          const requiredGaps = skillGapAnalysis.gaps.filter(g => g.requirementLevel === 'required');
+          if (requiredGaps.length > 0) {
+            newMessages.push({ type: 'assistant', content: `❗ Important skills to focus on: ${requiredGaps.map(g => g.displayName).join(', ')}` });
+          }
+        }
+        const nextSteps = getNextSteps(skillGapAnalysis);
+        if (nextSteps.length > 0) {
+          newMessages.push({ type: 'assistant', content: "Next steps:\n" + nextSteps.join('\n') });
+        }
+      }
+      return newMessages;
+    };
 
+    const analyze = async () => {
       setIsProcessing(true);
-
       try {
         if (!emailContent || !skills?.length) {
           if (isMounted) {
@@ -137,17 +81,11 @@ function ChatAssistant({ email, skills = [], initialSuggestions = [], onAnalysis
           }
           return;
         }
-
         const skillGapAnalysis = detectSkillGaps(emailContent, skills);
-        
         if (!isMounted) return;
-
         const newMessages = buildMessages(skillGapAnalysis);
-
         setAnalysis(skillGapAnalysis);
         setMessages(newMessages);
-        setLastAnalysis({ emailContent, skills: [...skills] });
-
         if (onAnalysisComplete) {
           onAnalysisComplete(skillGapAnalysis);
         }
@@ -165,7 +103,7 @@ function ChatAssistant({ email, skills = [], initialSuggestions = [], onAnalysis
     return () => {
       isMounted = false;
     };
-  }, [emailContent, skills, shouldReanalyze, buildMessages, onAnalysisComplete]);
+  }, [emailContent, skills]);
 
   return (
     <div className="chat-assistant">
