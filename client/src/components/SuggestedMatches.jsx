@@ -3,15 +3,17 @@ import React, { useEffect, useState } from 'react';
 import { suggestionsApi } from '../utils/api';
 import EmailCard from './EmailCard';
 
-const SuggestedMatches = ({ skills }) => {
+const SuggestedMatches = ({ skills, emails = [] }) => {
   const [matches, setMatches] = useState([]);
 
   useEffect(() => {
-    if (skills.length === 0) return;
+    if (skills.length === 0 || emails.length === 0) return;
 
     const fetchMatches = async () => {
       try {
-        const res = await suggestionsApi.matchSkills({ skills });
+        // Use the first email as the sample for matching
+        const email = emails[0];
+        const res = await suggestionsApi.matchSkills({ email, skills });
         setMatches(res.data.matches || []);
       } catch (err) {
         console.error('Match fetch error:', err);
@@ -19,7 +21,7 @@ const SuggestedMatches = ({ skills }) => {
     };
 
     fetchMatches();
-  }, [skills]);
+  }, [skills, emails]);
 
   return (
     <div className="mt-6">
