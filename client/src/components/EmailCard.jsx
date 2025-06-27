@@ -147,6 +147,7 @@ const EmailCard = React.memo(({
 
   // Memoize the analysis complete handler
   const handleAnalysisComplete = useCallback((analysis) => {
+    // Only log or do something if needed, but this function is now stable
     console.log('Analysis complete:', analysis);
   }, []);
 
