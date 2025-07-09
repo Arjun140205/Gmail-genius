@@ -26,10 +26,18 @@ passport.use(
       callbackURL: process.env.GOOGLE_REDIRECT_URI,
     },
     (accessToken, refreshToken, profile, done) => {
-      // Attach accessToken to user profile for later API calls
+      console.log('🔑 OAuth tokens received:', {
+        hasAccessToken: !!accessToken,
+        hasRefreshToken: !!refreshToken,
+        profileId: profile.id,
+        displayName: profile.displayName
+      });
+      
+      // Attach tokens to user profile for later API calls
       const userWithToken = {
         ...profile,
         accessToken,
+        refreshToken, // Store refresh token for token renewal
       };
       return done(null, userWithToken);
     }
