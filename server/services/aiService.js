@@ -77,9 +77,11 @@ class AIService {
       throw new Error('OpenRouter API key not configured');
     }
 
-    // For now, skip API calls due to exposed/disabled API key
-    console.log('⚠️ OpenRouter API temporarily disabled due to security concerns, using fallback mode');
-    throw new Error('OpenRouter API temporarily disabled - please generate new API key');
+    // Check if API key is placeholder
+    if (OPENROUTER_API_KEY === 'your_new_api_key_here') {
+      console.log('⚠️ Please update OPENROUTER_API_KEY in .env file with your actual API key');
+      throw new Error('OpenRouter API key not configured - please update .env file');
+    }
 
     for (let attempt = 1; attempt <= retries + 1; attempt++) {
       try {
