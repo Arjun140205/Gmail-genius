@@ -11,6 +11,7 @@ import gmailRoutes from './routes/gmailRoutes.js';
 import resumeRoutes from './routes/resumeRoutes.js';
 import suggestionRoutes from './routes/suggestionRoutes.js';
 import savedEmailRoutes from './routes/savedEmailRoutes.js';
+import aiRoutes from './routes/aiRoutes.js';
 
 dotenv.config();
 
@@ -32,8 +33,11 @@ app.use(session({
   saveUninitialized: false,
   cookie: {
     secure: false, // true if using HTTPS
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
     sameSite: 'lax',
   },
+  name: 'gmail-genius-session'
 }));
 
 // ✅ Passport Middleware
@@ -57,6 +61,7 @@ app.use('/api/gmail', gmailRoutes);
 app.use('/api/resume', resumeRoutes);
 app.use('/api/suggestions', suggestionRoutes);
 app.use('/api/saved-emails', savedEmailRoutes);
+app.use('/api/ai', aiRoutes);
 
 // ✅ Auth error handler
 app.use(handleAuthError);
