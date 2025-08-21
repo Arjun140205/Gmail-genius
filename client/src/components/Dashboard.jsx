@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { savedEmailsApi } from '../utils/api';
+import { aiApiService } from '../utils/aiApi';
 import EmailCard from './EmailCard';
 import ResumeUpload from './ResumeUpload';
 import AnalyticsPanel from './AnalyticsPanel';
 import SuggestionPanel from './SuggestionPanel';
+import AISuggestionPanel from './AISuggestionPanel';
 import SuggestedMatches from './SuggestedMatches';
 import TagFilter from './TagFilter';
 import SavedEmails from './SavedEmails';
@@ -11,10 +13,13 @@ import { filterEmailsByTags } from '../utils/tagUtils';
 
 export default function EmailDashboard({ user, emails = [], onLogout }) {
   const [extractedSkills, setExtractedSkills] = useState([]);
+  const [resumeData, setResumeData] = useState(null);
   const [selectedEmail, setSelectedEmail] = useState(null);
   const [selectedTags, setSelectedTags] = useState([]);
   const [activeTab, setActiveTab] = useState('inbox');
   const [savedEmails, setSavedEmails] = useState([]);
+  const [aiAnalysisEnabled, setAiAnalysisEnabled] = useState(false);
+  const [batchAnalysisStatus, setBatchAnalysisStatus] = useState(null);
   
   const profileImage = useMemo(() => user?.picture || '/api/user/profile-image', [user?.picture]);
   const userName = useMemo(() => user?.name || 'User', [user?.name]);
@@ -57,7 +62,7 @@ export default function EmailDashboard({ user, emails = [], onLogout }) {
     }
   }, [fetchSavedEmails]);
 
-  const handleSkillsExtracted = useCallback((skills) => {
+  const handleSkillsExtracted = useCallback((skills, data = null) => {
     setExtractedSkills(prevSkills => {
       // Only update if the skills have actually changed
       if (JSON.stringify(prevSkills) === JSON.stringify(skills)) {
@@ -65,6 +70,12 @@ export default function EmailDashboard({ user, emails = [], onLogout }) {
       }
       return skills;
     });
+    
+    // If enhanced resume data is provided, store it
+    if (data) {
+      setResumeData(data);
+      setAiAnalysisEnabled(true);
+    }
   }, []);
 
   const handleEmailSelect = useCallback((email) => {
@@ -73,6 +84,37 @@ export default function EmailDashboard({ user, emails = [], onLogout }) {
       return email;
     });
   }, []);
+
+  const handleBatchAnalysis = useCallback(async () => {
+    if (!resumeData || emails.length === 0) return;
+
+    setBatchAnalysisStatus('running');
+    
+    try {
+      const emailsToAnalyze = emails.slice(0, 20).map(email => ({
+        id: email.id,
+        subject: email.subject,
+        snippet: email.snippet,
+        body: email.body
+      }));
+
+      const response = await aiApiService.batchAnalyzeEmails(emailsToAnalyze, resumeData);
+      
+      if (response.success) {
+        setBatchAnalysisStatus('complete');
+        // You could update the emails with analysis results here
+        console.log('Batch analysis results:', response.data);
+      } else {
+        setBatchAnalysisStatus('error');
+      }
+    } catch (error) {
+      console.error('Batch analysis error:', error);
+      setBatchAnalysisStatus('error');
+    }
+
+    // Reset status after 3 seconds
+    setTimeout(() => setBatchAnalysisStatus(null), 3000);
+  }, [resumeData, emails]);
 
   useEffect(() => {
     fetchSavedEmails();
@@ -150,7 +192,7 @@ export default function EmailDashboard({ user, emails = [], onLogout }) {
             selectedTags={selectedTags}
             onTagSelect={setSelectedTags}
           />
-          <ResumeUpload onSkillsExtracted={handleSkillsExtracted} />
+          <ResumeUpload onResumeDataExtracted={handleSkillsExtracted} />
           <AnalyticsPanel emails={emails} skills={extractedSkills} />
         </div>
 
@@ -209,10 +251,39 @@ export default function EmailDashboard({ user, emails = [], onLogout }) {
         </div>
 
         <div className="right-column">
-          <SuggestionPanel 
-            selectedEmail={selectedEmail}
-            skills={extractedSkills}
-          />
+          {aiAnalysisEnabled && resumeData ? (
+            <AISuggestionPanel 
+              selectedEmail={selectedEmail}
+              resumeData={resumeData}
+              skills={extractedSkills}
+            />
+          ) : (
+            <SuggestionPanel 
+              selectedEmail={selectedEmail}
+              skills={extractedSkills}
+            />
+          )}
+          
+          {/* Batch Analysis Controls */}
+          {resumeData && emails.length > 0 && (
+            <div className="batch-analysis-section">
+              <h3>🚀 Batch Analysis</h3>
+              <button
+                className="batch-analyze-btn"
+                onClick={handleBatchAnalysis}
+                disabled={batchAnalysisStatus === 'running'}
+              >
+                {batchAnalysisStatus === 'running' ? 'Analyzing...' : 'Analyze All Emails'}
+              </button>
+              {batchAnalysisStatus && (
+                <div className={`batch-status ${batchAnalysisStatus}`}>
+                  {batchAnalysisStatus === 'running' && 'AI is analyzing your emails...'}
+                  {batchAnalysisStatus === 'complete' && 'Analysis complete!'}
+                  {batchAnalysisStatus === 'error' && 'Analysis failed. Please try again.'}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -437,6 +508,59 @@ export default function EmailDashboard({ user, emails = [], onLogout }) {
           .left-column {
             order: 0;
           }
+        }
+
+        .batch-analysis-section {
+          background: white;
+          padding: 1.5rem;
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+          margin-top: 1rem;
+        }
+
+        .batch-analyze-btn {
+          width: 100%;
+          padding: 0.75rem;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          border: none;
+          border-radius: 8px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .batch-analyze-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .batch-analyze-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        .batch-status {
+          margin-top: 0.5rem;
+          padding: 0.5rem;
+          border-radius: 6px;
+          font-size: 0.875rem;
+          text-align: center;
+        }
+
+        .batch-status.running {
+          background: #dbeafe;
+          color: #1d4ed8;
+        }
+
+        .batch-status.complete {
+          background: #dcfce7;
+          color: #166534;
+        }
+
+        .batch-status.error {
+          background: #fef2f2;
+          color: #dc2626;
         }
 
         @media (max-width: 640px) {
