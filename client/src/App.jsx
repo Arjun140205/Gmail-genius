@@ -1,14 +1,20 @@
 // src/App.jsx
 import React, { useState, useEffect } from 'react';
-import Dashboard from './components/Dashboard'; // ✅ Use your new dashboard
+import Dashboard from './components/Dashboard'; // Original dashboard
+import EnhancedDashboard from './components/EnhancedDashboard'; // New enhanced dashboard
+import ErrorBoundary from './components/ErrorBoundary'; // Error handling
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [emails, setEmails] = useState([]);
   const [filteredEmails, setFilteredEmails] = useState([]);
+  // eslint-disable-next-line no-unused-vars
   const [selectedTag, setSelectedTag] = useState('All');
+  // eslint-disable-next-line no-unused-vars
   const [loading, setLoading] = useState(false);
+  // eslint-disable-next-line no-unused-vars
   const [error, setError] = useState(null);
+  const [useEnhancedDashboard, setUseEnhancedDashboard] = useState(true); // Toggle for enhanced dashboard
 
   const tagEmail = (email) => {
     const subject = (email.subject || '').toLowerCase();
@@ -19,19 +25,38 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetch('http://localhost:3500/auth/user', { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => {
-        if (data.user) {
-          const userData = {
-            name: data.user.displayName || `${data.user.name?.givenName || ''} ${data.user.name?.familyName || ''}`.trim() || 'User',
-            email: data.user.emails?.[0]?.value || data.user.email || '',
-            picture: data.user.photos?.[0]?.value || data.user.picture || '',
-          };
-          setUser(userData);
-        } else setUser(null);
-      })
-      .catch(() => setUser(null));
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('http://localhost:3500/auth/user', { 
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user) {
+            const userData = {
+              name: data.user.displayName || `${data.user.name?.givenName || ''} ${data.user.name?.familyName || ''}`.trim() || 'User',
+              email: data.user.emails?.[0]?.value || data.user.email || '',
+              picture: data.user.photos?.[0]?.value || data.user.picture || '',
+            };
+            setUser(userData);
+          } else {
+            setUser(null);
+          }
+        } else {
+          // If 401, user is not authenticated
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        setUser(null);
+      }
+    };
+
+    checkAuth();
   }, []);
 
   useEffect(() => {
@@ -154,17 +179,52 @@ export default function App() {
             background: linear-gradient(90deg, #818cf8 0%, #6366f1 100%);
             box-shadow: 0 4px 16px rgba(99, 102, 241, 0.15);
           }
+          .dashboard-toggle {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1000;
+            background: white;
+            border: 2px solid #6366f1;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            color: #6366f1;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            transition: all 0.2s;
+          }
+          .dashboard-toggle:hover {
+            background: #6366f1;
+            color: white;
+          }
         `}</style>
       </main>
     );
   }
 
-  // ✅ Use Dashboard instead of Email now
+  // ✅ Use Enhanced Dashboard for full email management experience
   return (
-    <Dashboard
-      user={user}
-      emails={filteredEmails}
-      onLogout={logout}
-    />
+    <ErrorBoundary>
+      <div>
+        <button 
+          className="dashboard-toggle"
+          onClick={() => setUseEnhancedDashboard(!useEnhancedDashboard)}
+          title={`Switch to ${useEnhancedDashboard ? 'Original' : 'Enhanced'} Dashboard`}
+        >
+          {useEnhancedDashboard ? '📧 Enhanced' : '📋 Original'}
+        </button>
+        
+        {useEnhancedDashboard ? (
+          <EnhancedDashboard user={user} />
+        ) : (
+          <Dashboard
+            user={user}
+            emails={filteredEmails}
+            onLogout={logout}
+          />
+        )}
+      </div>
+    </ErrorBoundary>
   );
 }
