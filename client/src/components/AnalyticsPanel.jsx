@@ -2,10 +2,13 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 
-export default function AnalyticsPanel({ emails, skills }) {
+export default function AnalyticsPanel({ emails = [], skills = [] }) {
   const chartRef = useRef();
 
   useEffect(() => {
+    // Don't render chart if no emails
+    if (!emails || emails.length === 0) return;
+    
     // Prepare tag distribution
     const tagCounts = d3.rollup(emails, v => v.length, d => d.tag);
     const tagData = Array.from(tagCounts, ([tag, count]) => ({ tag, count }));
@@ -43,8 +46,13 @@ export default function AnalyticsPanel({ emails, skills }) {
   }, [emails]);
 
   const matchScore = () => {
-    const textCorpus = emails.map(e => `${e.subject} ${e.snippet}`.toLowerCase()).join(' ');
-    const matched = skills.filter(skill => textCorpus.includes(skill.toLowerCase()));
+    // Add null safety checks
+    if (!emails || !skills || emails.length === 0 || skills.length === 0) {
+      return { percent: 0, matched: [] };
+    }
+    
+    const textCorpus = emails.map(e => `${e.subject || ''} ${e.snippet || ''}`.toLowerCase()).join(' ');
+    const matched = skills.filter(skill => skill && textCorpus.includes(skill.toLowerCase()));
     const percent = Math.round((matched.length / skills.length) * 100);
     return { percent, matched };
   };
@@ -57,7 +65,7 @@ export default function AnalyticsPanel({ emails, skills }) {
       <div className="charts-container">
         <div>
           <p>📌 Skill Match: <strong>{percent}%</strong></p>
-          <p>✅ Matched: {matched.join(', ') || 'None'}</p>
+          <p>✅ Matched: {matched && matched.length > 0 ? matched.join(', ') : 'None'}</p>
         </div>
         <svg ref={chartRef}></svg>
       </div>
